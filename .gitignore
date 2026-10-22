@@ -1,0 +1,11 @@
+.vercel
+.env*
+node_modules
+*.png
+*.jpg
+*.jpeg
+*.pdf
+downloads/
+all_historical_keys.json
+surveys_backup_raw.json
+surveys_clean.json

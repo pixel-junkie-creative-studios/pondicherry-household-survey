@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PRIVATE OWNER TELEMETRY & ADMIN DASHBOARD</title>
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-900 text-slate-100 dark-admin-body">
+
+  <!-- REAL-TIME INCOMING SURVEY NOTIFICATION TOAST CONTAINER -->
+  <div id="live-toast-container" class="live-toast-container"></div>
+
+  <!-- TOP ADMIN BAR -->
+  <header class="admin-top-nav">
+    <div class="nav-container">
+      <div class="brand-logo">
+        <div class="logo-icon bg-purple"><i class="fa-solid fa-chart-line"></i></div>
+        <div class="brand-text">
+          <span class="brand-title text-white">Survey Analytics & Control Center</span>
+          <span class="brand-subtitle text-slate-400">Pondicherry City Waste Management Analytics</span>
+        </div>
+      </div>
+
+      <div class="admin-live-clock" style="display:flex; align-items:center; gap:12px;">
+        <button id="btn-toggle-sound" class="live-sound-toggle active"><i class="fa-solid fa-volume-high"></i> Live Audio Alerts: ON</button>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span class="live-dot"></span>
+          <span>Per-Second Database Sync: <strong id="live-polling-clock">ACTIVE (1s)</strong></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content">
+
+    <!-- EXECUTIVE METRICS GRID -->
+    <div class="metrics-grid grid-4">
+      <div class="metric-card dark-card">
+        <div class="metric-icon bg-purple-light text-purple"><i class="fa-solid fa-file-circle-check"></i></div>
+        <div class="metric-data">
+          <span class="metric-label text-slate-400">Total Surveys Completed</span>
+          <h3 id="stat-total-surveys" class="text-white">0</h3>
+          <span class="metric-sub text-emerald"><i class="fa-solid fa-arrows-rotate fa-spin"></i> Polling 1000ms</span>
+        </div>
+      </div>
+
+      <div class="metric-card dark-card">
+        <div class="metric-icon bg-amber-light text-amber"><i class="fa-solid fa-stopwatch"></i></div>
+        <div class="metric-data">
+          <span class="metric-label text-slate-400">Avg Completion Time</span>
+          <h3 id="stat-avg-duration" class="text-amber">0m 0s</h3>
+          <span class="metric-sub text-slate-400" id="stat-suspicious-count">0 flagged submissions</span>
+        </div>
+      </div>
+
+      <div class="metric-card dark-card">
+        <div class="metric-icon bg-cyan-light text-cyan"><i class="fa-solid fa-users"></i></div>
+        <div class="metric-data">
+          <span class="metric-label text-slate-400">Total Population Sampled</span>
+          <h3 id="stat-total-population" class="text-cyan">0</h3>
+          <span class="metric-sub text-slate-400" id="stat-avg-family">0.0 members / house</span>
+        </div>
+      </div>
+
+      <div class="metric-card dark-card">
+        <div class="metric-icon bg-emerald-light text-emerald"><i class="fa-solid fa-mobile-screen-button"></i></div>
+        <div class="metric-data">
+          <span class="metric-label text-slate-400">Unique Field Devices / IPs</span>
+          <h3 id="stat-unique-devices" class="text-emerald">0</h3>
+          <span class="metric-sub text-slate-400" id="stat-ip-clustering">0 repeat IP batches detected</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUBMISSION AUDIT TRAIL TABLE (TIME ELAPSED & IP LOG) -->
+    <div class="table-card dark-card margin-bottom-lg">
+      <div class="card-header flex-between">
+        <div>
+          <h3 class="text-white"><i class="fa-solid fa-clock-rotate-left text-amber"></i> Live Submission Audit & Verification Log</h3>
+          <p class="text-slate-400">Monitors completion time and device IP for incoming household questionnaires.</p>
+        </div>
+        <span class="status-pill pill-med"><i class="fa-solid fa-signal"></i> Live Sync</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table dark-table" id="audit-telemetry-table">
+          <thead>
+            <tr>
+              <th>Survey ID</th>
+              <th>Interviewer</th>
+              <th>Team & Zone</th>
+              <th>Ward & Area</th>
+              <th>Family Head</th>
+              <th>Mobile / WhatsApp</th>
+              <th>Mode</th>
+              <th>Time Taken</th>
+              <th>Field Device / IP</th>
+              <th>Household Pop.</th>
+              <th>Audit Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Dynamically updated every 1 second -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 20 INTERVIEWERS LIVE COUNT & DURATION AUDIT SCORECARDS -->
+    <div class="section-title-margin">
+      <h3 class="text-white"><i class="fa-solid fa-users-viewfinder text-purple"></i> Field Interviewers Performance & Audit Roster</h3>
+    </div>
+    <div id="admin-interviewers-grid" class="cards-grid grid-4 margin-bottom-lg">
+      <!-- Dynamically populated from typed submissions -->
+    </div>
+
+    <!-- COMPREHENSIVE DATA ANALYTICS & DATA INTERPRETATION SUITE FOR ALL 17 QUESTIONS -->
+    <div class="section-title-margin flex-between">
+      <h3 class="text-white"><i class="fa-solid fa-chart-column text-emerald"></i> Comprehensive Question Analytics & Data Interpretations</h3>
+      <span class="text-slate-400 text-sm">Visualizing All 17 Field Survey Variables & Citizen Decision Patterns</span>
+    </div>
+
+    <!-- CHARTS ROW 1: Q1 & Q2 (BASIC INFORMATION) -->
+    <div class="charts-grid grid-2 margin-bottom-lg">
+      <div class="chart-card dark-card">
+        <div class="chart-header">
+          <h4 class="text-white"><i class="fa-solid fa-city text-indigo"></i> Q1: Locality & Area Type (நீங்கள் எந்த வகையான பகுதியில் வசிக்கிறீர்கள்?)</h4>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-q1-area"></canvas>
+        </div>
+        <div class="interpretation-box">
+          <div class="interp-title"><i class="fa-solid fa-magnifying-glass-chart"></i> In-Depth Data Analysis & Statistical Breakdown:</div>
+          <div class="interp-stats-row" id="stats-row-q1"></div>
+          <div id="interp-q1"></div>
+          <div class="interp-policy" id="policy-q1"></div>
+        </div>
+      </div>
+
+      <div class="chart-card dark-card">
+        <div class="chart-header">
+          <h4 class="text-white"><i class="fa-solid fa-users text-cyan"></i> Q2: Household Demographic Structure (உங்கள் வீட்டில் எத்தனை பேர் வசிக்கிறார்கள்?)</h4>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-q2-demographics"></canvas>
+        </div>
+        <div class="interpretation-box">
+          <div class="interp-title"><i class="fa-solid fa-magnifying-glass-chart"></i> In-Depth Data Analysis & Statistical Breakdown:</div>
+          <div class="interp-stats-row" id="stats-row-q2"></div>
+          <div id="interp-q2"></div>
+          <div class="interp-policy" id="policy-q2"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHARTS ROW 2: Q3 & Q4 (WASTE GENERATION & DISPOSAL) -->
+    <div class="charts-grid grid-2 margin-bottom-lg">
+      <div class="chart-card dark-card">
+        <div class="chart-header">
+          <h4 class="text-white"><i class="fa-solid fa-dumpster text-emerald"></i> Q3: Primary Household Waste Streams (அதிகமாக உருவாகும் கழிவு எது?)</h4>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-q3-waste"></canvas>
+        </div>
+        <div class="interpretation-box">
+          <div class="interp-title"><i class="fa-solid fa-magnifying-glass-chart"></i> In-Depth Data Analysis & Statistical Breakdown:</div>
+          <div class="interp-stats-row" id="stats-row-q3"></div>
+          <div id="interp-q3"></div>
+          <div class="interp-policy" id="policy-q3"></div>
+        </div>
+      </div>
+
+      <div class="chart-card dark-card">
+        <div class="chart-header">
+          <h4 class="text-white"><i class="fa-solid fa-truck-ramp-box text-cyan"></i> Q4: Current Waste Disposal Methods (கழிவுகளை எவ்வாறு அகற்றுகிறீர்கள்?)</h4>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-disposal-methods"></canvas>
+        </div>
+        <div class="interpretation-box">
+          <div class="interp-title"><i class="fa-solid fa-magnifying-glass-chart"></i> In-Depth Data Analysis & Statistical Breakdown:</div>
+          <div class="interp-stats-row" id="stats-row-q4"></div>
+          <div id="interp-q4"></div>
+          <div class="interp-policy" id="policy-q4"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHARTS ROW 3: Q5 & Q6 (FREQUENCY & SEGREGATION) -->
+    <div class="charts-grid grid-2 margin-bottom-lg">
+      <div class="chart-card dark-card">
+        <div class="chart-header">
+          <h4 class="text-white"><i class="fa-solid fa-calendar-days text-purple"></i> Q5: Collection Frequency Breakdown (எவ்வளவு அடிக்கடி கழிவுகள் சேகரிக்கப்படுகின்றன?)</h4>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-q5-frequency"></canvas>
+        </div>
+        <div class="interpretation-box">
+          <div class="interp-title"><i class="fa-solid fa-magnifying-glass-chart"></i> In-Depth Data Analysis & Statistical Breakdown:</div>
+          <div class="interp-stats-row" id="stats-row-q5"></div>
+          <div id="interp-q5"></div>
+          <div class="interp-policy" id="policy-q5"></div>
+        </div>
+      </div>
+
+      <div class="chart-card dark-card">
+        <div class="chart-header">
+          <h4 class="text-white"><i class="fa-solid fa-arrows-split-up-and-left text-amber"></i> Q6: Wet & Dry Waste Segregation (மட்கும் மற்றும் மட்காதவையாகப் பிரிக்கிறீர்களா?)</h4>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-q7-segregation"></canvas>
+        </div>
+        <div class="interpretation-box">
+          <div class="interp-title"><i class="fa-solid fa-magnifying-glass-chart"></i> In-Depth Data Analysis & Statistical Breakdown:</div>
+          <div class="interp-stats-row" id="stats-row-q6"></div>
+          <div id="interp-q7"></div>
+          <div class="interp-policy" id="policy-q6"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHARTS ROW 4: Q7 & Q8 (BARRIERS & DUMPING HOTSPOTS) -->
+    <div class="charts-grid grid-2 margin-bottom-lg">
+      <div class="chart-card dark-card">
+        <div class="chart-header">
+          <h4 class="text-white"><i class="fa-solid fa-circle-exclamation text-rose"></i> Q7: Root Cause Barriers to Segregation (கழிவுகளைப் பிரிக்காவிட்டால் முக்கிய காரணம்?)</h4>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-q8-reasons"></canvas>
+        </div>
+        <div class="interpretation-box">
+          <div class="interp-title"><i class="fa-solid fa-magnifying-glass-chart"></i> In-Depth Data Analysis & Statistical Breakdown:</div>
+          <div class="interp-stats-row" id="stats-row-q7"></div>
+          <div id="interp-q8"></div>
+          <div class="interp-policy" id="policy-q7"></div>
+        </div>
+      </div>
+
+      <div class="chart-card dark-card">
+        <div class="chart-header">
+          <h4 class="text-white"><i class="fa-solid fa-map-location-dot text-amber"></i> Q8: Public Waste Dumping Hotspots (பொது இடங்களில் எங்கே கொட்டுகிறார்கள்?)</h4>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-q8-dumping"></canvas>
+        </div>
+        <div class="interpretation-box">
+          <div class="interp-title"><i class="fa-solid fa-magnifying-glass-chart"></i> In-Depth Data Analysis & Statistical Breakdown:</div>
+          <div class="interp-stats-row" id="stats-row-q8"></div>
+          <div id="interp-q8-dumping"></div>
+          <div class="interp-policy" id="policy-q8"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHARTS ROW 5: Q9 & Q10 (NUISANCES & DIFFICULT WASTE) -->
+    <div class="charts-grid grid-2 margin-bottom-lg">
+      <div class="chart-card dark-card">
+        <div class="chart-header">
+          <h4 class="text-white"><i class="fa-solid fa-bugs text-rose"></i> Q9: Impacts & Nuisances of Dumping (கொட்டுவதால் ஏற்படும் பாதிப்புகள் என்ன?)</h4>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-q11-nuisances"></canvas>
+        </div>
+        <div class="interpretation-box">
+          <div class="interp-title"><i class="fa-solid fa-magnifying-glass-chart"></i> In-Depth Data Analysis & Statistical Breakdown:</div>
+          <div class="interp-stats-row" id="stats-row-q9"></div>
+          <div id="interp-q11"></div>
+          <div class="interp-policy" id="policy-q9"></div>
+        </div>
+      </div>
+
+      <div class="chart-card dark-card">
+        <div class="chart-header">
+          <h4 class="text-white"><i class="fa-solid fa-biohazard text-amber"></i> Q10: Most Difficult Waste Streams to Dispose (அகற்றுவது மிகவும் கடினமான கழிவு?)</h4>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-q13-difficult"></canvas>
+        </div>
+        <div class="interpretation-box">
+          <div class="interp-title"><i class="fa-solid fa-magnifying-glass-chart"></i> In-Depth Data Analysis & Statistical Breakdown:</div>
+          <div class="interp-stats-row" id="stats-row-q10"></div>
+          <div id="interp-q13"></div>
+          <div class="interp-policy" id="policy-q10"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHARTS ROW 6: Q11 & Q12 (DELAY IMPACT & AWARENESS) -->
+    <div class="charts-grid grid-2 margin-bottom-lg">
+      <div class="chart-card dark-card">
+        <div class="chart-header">
+          <h4 class="text-white"><i class="fa-solid fa-hourglass-end text-rose"></i> Q11: Direct Consequences of Delayed Pickup (நேரத்தில் சேகரிக்கப்படாவிட்டால் என்ன நடக்கும்?)</h4>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-q11-delayed-effects"></canvas>
+        </div>
+        <div class="interpretation-box">
+          <div class="interp-title"><i class="fa-solid fa-magnifying-glass-chart"></i> In-Depth Data Analysis & Statistical Breakdown:</div>
+          <div class="interp-stats-row" id="stats-row-q11"></div>
+          <div id="interp-q11-delay"></div>
+          <div class="interp-policy" id="policy-q11-delay"></div>
+        </div>
+      </div>
+
+      <div class="chart-card dark-card">
+        <div class="chart-header">
+          <h4 class="text-white"><i class="fa-solid fa-graduation-cap text-indigo"></i> Q12: Citizen Waste Segregation Awareness (மக்களுக்கு போதுமான விழிப்புணர்வு உள்ளதா?)</h4>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-q12-awareness"></canvas>
+        </div>
+        <div class="interpretation-box">
+          <div class="interp-title"><i class="fa-solid fa-magnifying-glass-chart"></i> In-Depth Data Analysis & Statistical Breakdown:</div>
+          <div class="interp-stats-row" id="stats-row-q12"></div>
+          <div id="interp-q12"></div>
+          <div class="interp-policy" id="policy-q12"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHARTS ROW 7: Q13 & Q14 (PLASTIC BAN & CONVENIENCE) -->
+    <div class="charts-grid grid-2 margin-bottom-lg">
+      <div class="chart-card dark-card">
+        <div class="chart-header">
+          <h4 class="text-white"><i class="fa-solid fa-ban text-emerald"></i> Q13: Single-Use Plastic Ban Awareness & Cloth Bags (ஒருமுறை பயன்படுத்தும் பிளாஸ்டிக் தடை?)</h4>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-q13-plastic-ban"></canvas>
+        </div>
+        <div class="interpretation-box">
+          <div class="interp-title"><i class="fa-solid fa-magnifying-glass-chart"></i> In-Depth Data Analysis & Statistical Breakdown:</div>
+          <div class="interp-stats-row" id="stats-row-q13-ban"></div>
+          <div id="interp-q13-ban"></div>
+          <div class="interp-policy" id="policy-q13-ban"></div>
+        </div>
+      </div>
+
+      <div class="chart-card dark-card">
+        <div class="chart-header">
+          <h4 class="text-white"><i class="fa-solid fa-thumbs-up text-cyan"></i> Q14: Collection Convenience Assessment (தற்போதுள்ள முறை உங்களுக்கு வசதியாக உள்ளதா?)</h4>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-q13-convenience"></canvas>
+        </div>
+        <div class="interpretation-box">
+          <div class="interp-title"><i class="fa-solid fa-magnifying-glass-chart"></i> In-Depth Data Analysis & Statistical Breakdown:</div>
+          <div class="interp-stats-row" id="stats-row-q14-convenience"></div>
+          <div id="interp-q13-convenience"></div>
+          <div class="interp-policy" id="policy-q14-convenience"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHARTS ROW 8: Q15 & Q16 (SATISFACTION RATING & COMMUNITY CLEANUP) -->
+    <div class="charts-grid grid-2 margin-bottom-lg">
+      <div class="chart-card dark-card">
+        <div class="chart-header">
+          <h4 class="text-white"><i class="fa-solid fa-star text-amber"></i> Q15: Overall Municipal Waste Service Satisfaction (ஒட்டுமொத்த சேவை திருப்தி நிலை)</h4>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-q15-satisfaction"></canvas>
+        </div>
+        <div class="interpretation-box">
+          <div class="interp-title"><i class="fa-solid fa-magnifying-glass-chart"></i> In-Depth Data Analysis & Statistical Breakdown:</div>
+          <div class="interp-stats-row" id="stats-row-q15-satisfaction"></div>
+          <div id="interp-q15-satisfaction"></div>
+          <div class="interp-policy" id="policy-q15-satisfaction"></div>
+        </div>
+      </div>
+
+      <div class="chart-card dark-card">
+        <div class="chart-header">
+          <h4 class="text-white"><i class="fa-solid fa-users text-cyan"></i> Q16: Community Clean-up Volunteering (சமூக தூய்மைப் பணிகளில் எவ்வளவு அடிக்கடி பங்கேற்பீர்கள்?)</h4>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-q14-community"></canvas>
+        </div>
+        <div class="interpretation-box">
+          <div class="interp-title"><i class="fa-solid fa-magnifying-glass-chart"></i> In-Depth Data Analysis & Statistical Breakdown:</div>
+          <div class="interp-stats-row" id="stats-row-q16-community"></div>
+          <div id="interp-q14"></div>
+          <div class="interp-policy" id="policy-q16-community"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHARTS ROW 9: Q17 & Q18 (ASSISTANCE & DUSTBIN PREFERENCE) -->
+    <div class="charts-grid grid-2 margin-bottom-lg">
+      <div class="chart-card dark-card">
+        <div class="chart-header">
+          <h4 class="text-white"><i class="fa-solid fa-handshake-angle text-emerald"></i> Q17: Highest Priority Municipal Support (என்ன வகையான உதவி தேவைப்படும்?)</h4>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-q24-support"></canvas>
+        </div>
+        <div class="interpretation-box">
+          <div class="interp-title"><i class="fa-solid fa-magnifying-glass-chart"></i> In-Depth Data Analysis & Statistical Breakdown:</div>
+          <div class="interp-stats-row" id="stats-row-q17-support"></div>
+          <div id="interp-q24"></div>
+          <div class="interp-policy" id="policy-q17-support"></div>
+        </div>
+      </div>
+
+      <div class="chart-card dark-card">
+        <div class="chart-header">
+          <h4 class="text-white"><i class="fa-solid fa-trash-can text-emerald"></i> Q18: Dustbin Choice (இலவச அல்லது கட்டணக் குப்பைத் தொட்டி தேவையா?)</h4>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-paid-service"></canvas>
+        </div>
+        <div class="interpretation-box">
+          <div class="interp-title"><i class="fa-solid fa-magnifying-glass-chart"></i> In-Depth Data Analysis & Statistical Breakdown:</div>
+          <div class="interp-stats-row" id="stats-row-q18-dustbin"></div>
+          <div id="interp-q25"></div>
+          <div class="interp-policy" id="policy-q18-dustbin"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHARTS ROW 10: Q18b & Q19 (INCOME STRATIFICATION & WILLINGNESS TO PAY) -->
+    <div class="charts-grid grid-2 margin-bottom-lg">
+      <div class="chart-card dark-card">
+        <div class="chart-header">
+          <h4 class="text-white"><i class="fa-solid fa-wallet text-amber"></i> Q18b: Free Bin Applicants Income Bracket (இலவசத் தொட்டி கோருபவர்களுக்கான மாத வருமானம்)</h4>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-income-brackets"></canvas>
+        </div>
+        <div class="interpretation-box">
+          <div class="interp-title"><i class="fa-solid fa-magnifying-glass-chart"></i> In-Depth Data Analysis & Statistical Breakdown:</div>
+          <div class="interp-stats-row" id="stats-row-income"></div>
+          <div id="interp-income"></div>
+          <div class="interp-policy" id="policy-income"></div>
+        </div>
+      </div>
+
+      <div class="chart-card dark-card">
+        <div class="chart-header">
+          <h4 class="text-white"><i class="fa-solid fa-receipt text-indigo"></i> Q19: Willingness to Pay Nominal Fee (₹30-₹50) (மாதந்தோறும் சிறு பயனர் கட்டணம்?)</h4>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-q19-willingness"></canvas>
+        </div>
+        <div class="interpretation-box">
+          <div class="interp-title"><i class="fa-solid fa-magnifying-glass-chart"></i> In-Depth Data Analysis & Statistical Breakdown:</div>
+          <div class="interp-stats-row" id="stats-row-q19-fee"></div>
+          <div id="interp-q19-fee"></div>
+          <div class="interp-policy" id="policy-q19-fee"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHARTS ROW 11: Q20 (SINGLE KEY REFORM DEMAND) -->
+    <div class="charts-grid grid-1 margin-bottom-lg">
+      <div class="chart-card dark-card">
+        <div class="chart-header">
+          <h4 class="text-white"><i class="fa-solid fa-lightbulb text-emerald"></i> Q20: Single Key Reform Demand (கழிவு மேலாண்மையில் ஒரு முக்கிய மாற்றம்)</h4>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-q17-reforms"></canvas>
+        </div>
+        <div class="interpretation-box">
+          <div class="interp-title"><i class="fa-solid fa-magnifying-glass-chart"></i> In-Depth Data Analysis & Statistical Breakdown:</div>
+          <div class="interp-stats-row" id="stats-row-q20-reforms"></div>
+          <div id="interp-q17-reforms"></div>
+          <div class="interp-policy" id="policy-q20-reforms"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUALITATIVE FEEDBACK & SUGGESTIONS FEED (Q8, Q14 & Q20 VERBATIM) -->
+    <div class="table-card dark-card margin-bottom-lg">
+      <div class="card-header flex-between">
+        <div>
+          <h3 class="text-white"><i class="fa-solid fa-comment-dots text-cyan"></i> Citizen Direct Feedback Feed (Q8 Dumping Spots, Q14 Convenience & Q20 Reform Proposals)</h3>
+          <p class="text-slate-400">Verbatim responses from households regarding exact dumping locations, system convenience, and key reform ideas.</p>
+        </div>
+        <span class="status-pill pill-low"><i class="fa-solid fa-comments"></i> Qualitative Insights</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table dark-table" id="suggestions-qualitative-table">
+          <thead>
+            <tr>
+              <th>Household ID</th>
+              <th>Locality / Area</th>
+              <th>Interviewer</th>
+              <th>Q8: Identified Dumping Spot</th>
+              <th>Q14: Collection Convenience Reason</th>
+              <th>Q20: Single Key Municipal Recommendation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="admin.js"></script>
+</body>
+</html>

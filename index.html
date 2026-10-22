@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Waste Management Field Survey System</title>
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+  <!-- APP HEADER -->
+  <header class="top-nav">
+    <div class="nav-container">
+      <div class="brand-logo">
+        <div class="logo-icon bg-emerald"><i class="fa-solid fa-recycle"></i></div>
+        <div class="brand-text">
+          <span class="brand-title">Pondicherry Waste Management Survey</span>
+          <span class="brand-subtitle">Field Interviewer Questionnaire Application</span>
+        </div>
+      </div>
+      
+      <div class="nav-actions" style="display:flex; align-items:center; gap:10px;">
+        <div class="sync-badge" style="background:#f1f5f9; color:#334155; font-size:12px; border:1px solid #cbd5e1;">
+          <i class="fa-solid fa-cloud-arrow-up text-emerald"></i> Cloud Total: <strong id="header-live-count" style="margin-left:4px; color:#059669;">--</strong>
+        </div>
+        <div id="sync-status" class="sync-badge online">
+          <span class="dot"></span> <span id="sync-status-text">Live Sync</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN FIELD FORM -->
+  <main class="main-content form-container-narrow">
+
+    <div class="page-header">
+      <div>
+        <h2><i class="fa-solid fa-clipboard-check text-emerald"></i> Waste Management Household Questionnaire</h2>
+        <p>Complete interviewer check-in to unlock the field questionnaire and begin response timer.</p>
+      </div>
+      <div id="interviewer-active-badge" class="active-badge" style="display:none;">
+        <i class="fa-solid fa-circle-check text-emerald"></i> Active Interviewer: <strong id="active-interviewer-name"></strong> • <span id="active-interviewer-team"></span> | Timer: <strong id="active-timer-display" class="text-emerald">00:00</strong>
+      </div>
+    </div>
+
+    <!-- MANDATORY INTERVIEWER LOGIN / START MODAL -->
+    <div id="modal-start-confirm" class="modal-overlay active">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h3><i class="fa-solid fa-user-gear text-emerald"></i> Interviewer Check-in & Timer Gateway</h3>
+        </div>
+        <form id="form-interviewer-login" class="modal-body">
+          <p style="font-size:14px; color:#64748b; margin-bottom:16px;">Enter your name to unlock the 20 questions and start the response timer.</p>
+          
+          <div class="form-group" style="margin-bottom:14px;">
+            <label style="font-weight:700;">Interviewer Full Name <span class="req">*</span></label>
+            <input type="text" id="login-int-name" class="form-input" required placeholder="Type in your name">
+          </div>
+
+          <div class="form-group" style="margin-bottom:14px;">
+            <label style="font-weight:700;">Assigned Team <span class="req">*</span></label>
+            <select id="login-int-team" class="form-select select-accent" required>
+              <option value="Team 1">Team 1</option>
+              <option value="Team 2">Team 2</option>
+              <option value="Team 3">Team 3</option>
+              <option value="Team 4">Team 4</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="margin-bottom:20px;">
+            <label style="font-weight:700;">Location / Area <span class="req">*</span></label>
+            <input type="text" id="login-int-location" class="form-input" required placeholder="Type in your location / area">
+          </div>
+
+          <div style="background:#ecfdf5; padding:12px; border-radius:8px; border:1px solid #a7f3d0; font-size:12.5px; color:#047857; margin-bottom:20px;">
+            <i class="fa-solid fa-stopwatch"></i> Questionnaire will unlock and timer will start exact second you click <strong>"Start Household Survey"</strong>.
+          </div>
+
+          <button type="submit" class="btn btn-lg btn-success" style="width:100%;">
+            <i class="fa-solid fa-play"></i> Unlock Questionnaire & Start Timer
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <form id="waste-survey-form" class="survey-card-container disabled-form" style="opacity: 0.3; pointer-events: none;">
+
+      <!-- SECTION 0: RESPONDENT DEMOGRAPHICS & CONTACT / பதிலளிப்பவர் விவரங்கள் -->
+      <div class="form-card">
+        <div class="card-header">
+          <span class="step-num bg-emerald-light text-emerald"><i class="fa-solid fa-address-card"></i></span>
+          <div>
+            <h3>பதிலளிப்பவர் மற்றும் முகவரி விவரங்கள் / Respondent Profile & Household Address</h3>
+            <p>வார்டு, பகுதி, தெரு, குடும்பத் தலைவர் பெயர் & தொடர்பு விவரங்கள் / Ward, Street, Family Head & Contact Info</p>
+          </div>
+        </div>
+
+        <div class="form-grid grid-2">
+          <div class="form-group">
+            <label>நகராட்சி வார்டு எண் / Ward Number <span class="req">*</span></label>
+            <input type="text" id="resp-ward" class="form-input" required placeholder="எ.கா: Ward 12 / முத்தியால்பேட்டை">
+          </div>
+
+          <div class="form-group">
+            <label>பகுதி / Locality or Area Name <span class="req">*</span></label>
+            <input type="text" id="resp-area" class="form-input" required placeholder="எ.கா: அன்னை தெரசா நகர் / மூலக்குளம்">
+          </div>
+
+          <div class="form-group col-span-2">
+            <label>தெரு பெயர் & கதவு எண் / Street Name & Door No. <span class="req">*</span></label>
+            <input type="text" id="resp-street" class="form-input" required placeholder="எ.கா: 4வது குறுக்கு தெரு, கதவு எண்: 12B">
+          </div>
+
+          <div class="form-group">
+            <label>குடும்பத் தலைவர் பெயர் / Name of Family Head <span class="req">*</span></label>
+            <input type="text" id="resp-family-head" class="form-input" required placeholder="குடும்பத் தலைவர் பெயர்">
+          </div>
+
+          <div class="form-group">
+            <label>பெரியவரின் மொபைல் எண் (WhatsApp) / Mobile Number (Adult) (Optional / விருப்பப்பட்டால்)</label>
+            <input type="tel" id="resp-mobile" class="form-input" pattern="[0-9]{10}" maxlength="10" placeholder="10 இலக்க மொபைல் எண் (எ.கா: 9876543210)">
+          </div>
+
+          <div class="form-group col-span-2">
+            <label>மின்னஞ்சல் முகவரி / Email ID (Optional / விருப்பப்பட்டால்)</label>
+            <input type="email" id="resp-email" class="form-input" placeholder="name@example.com (முழு படிவம் அனுப்ப)">
+          </div>
+        </div>
+      </div>
+
+      <!-- SURVEY DURATION / TIME AVAILABILITY GATEWAY -->
+      <div class="form-card highlight-card" style="border: 2px solid #059669; background: #f0fdf4;">
+        <div class="card-header">
+          <span class="step-num bg-emerald text-white"><i class="fa-solid fa-stopwatch-20"></i></span>
+          <div>
+            <h3 style="color:#065f46;">நேர வாய்ப்பு / Respondent Time Availability Check</h3>
+            <p style="color:#047857;">கேள்வித்தாள் முழுவதும் பதிலளிக்க நேரம் உள்ளதா? / Do you have time for the detailed 20-question survey now?</p>
+          </div>
+        </div>
+
+        <div style="padding: 16px 20px;">
+          <label style="font-size:15px; font-weight:700; color:#064e3b; display:block; margin-bottom:12px;">
+            பதிலளிப்பவரிடம் கேட்கவும்: விரிவான கேள்வித்தாளுக்கு (5-7 நிமிடங்கள்) நேரம் உள்ளதா? <span class="req">*</span>
+          </label>
+
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:14px;">
+            <label class="time-choice-card" id="card-choice-full" style="border:2px solid #cbd5e1; border-radius:10px; padding:16px; background:#ffffff; cursor:pointer; display:flex; align-items:flex-start; gap:12px; transition:all 0.2s;">
+              <input type="radio" name="survey_mode" value="full" id="mode-full" checked style="margin-top:4px; accent-color:#059669;">
+              <div>
+                <strong style="color:#0f172a; font-size:15px; display:block;"><i class="fa-solid fa-list-check text-emerald"></i> ஆம், நேரம் உள்ளது (முழுமையான 20 கேள்விகள்)</strong>
+                <span style="font-size:12.5px; color:#64748b; display:block; margin-top:4px;">Yes, has time — Unlock complete 20-question questionnaire directly.</span>
+              </div>
+            </label>
+
+            <label class="time-choice-card" id="card-choice-short" style="border:2px solid #cbd5e1; border-radius:10px; padding:16px; background:#ffffff; cursor:pointer; display:flex; align-items:flex-start; gap:12px; transition:all 0.2s;">
+              <input type="radio" name="survey_mode" value="short" id="mode-short" style="margin-top:4px; accent-color:#059669;">
+              <div>
+                <strong style="color:#b45309; font-size:15px; display:block;"><i class="fa-solid fa-bolt text-amber"></i> நேரம் குறைவு / அவசரம் (10 விரைவுக் கேள்விகள்)</strong>
+                <span style="font-size:12.5px; color:#64748b; display:block; margin-top:4px;">No/Less time — 10 vital quick questions now; WhatsApp link to fill rest.</span>
+              </div>
+            </label>
+          </div>
+
+          <!-- NOTICE FOR SHORT MODE -->
+          <div id="short-mode-notice" style="display:none; margin-top:14px; background:#fffbeb; border:1px solid #fde68a; padding:12px 14px; border-radius:8px; font-size:13px; color:#92400e;">
+            <i class="fa-brands fa-whatsapp text-emerald" style="font-size:16px;"></i> <strong>விரைவு முறைமை இயக்கத்தில் உள்ளது:</strong> மிக முக்கியமான 10 கேள்விகள் மட்டுமே கேட்கப்படும். சமர்ப்பித்தவுடன் மீதமுள்ள கேள்விகள் பதிலளிப்பவரின் வாட்ஸ்அப் எண்ணிற்கு பகிரப்படும்!
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 1: BASIC INFORMATION / அடிப்படைத் தகவல்கள் -->
+      <div class="form-card" id="section-card-1">
+        <div class="card-header">
+          <span class="step-num bg-emerald-light text-emerald">01</span>
+          <div>
+            <h3>1. அடிப்படைத் தகவல்கள் / Basic Information</h3>
+            <p>பகுதி வகை மற்றும் குடும்ப உறுப்பினர் விவரங்கள் / Locality & Household Population Breakdown</p>
+          </div>
+        </div>
+
+        <div class="form-grid grid-2">
+          <div class="form-group col-span-2">
+            <label>1. நீங்கள் எந்த வகையான பகுதியில் வசிக்கிறீர்கள்? / What type of area do you live in? (Select All That Apply) <span class="req">*</span></label>
+            <div class="checkbox-group">
+              <label class="checkbox-label"><input type="checkbox" name="q1_area" value="Residential area"> குடியிருப்பு பகுதி / Residential area</label>
+              <label class="checkbox-label"><input type="checkbox" name="q1_area" value="Slum/low-income area"> சேரி / குறைந்த வருவாய் பகுதி / Slum/low-income area</label>
+              <label class="checkbox-label"><input type="checkbox" name="q1_area" value="Apartment"> அபார்ட்மெண்ட் / Apartment</label>
+              <label class="checkbox-label"><input type="checkbox" name="q1_area" value="Rural area"> கிராமப்புற பகுதி / Rural area</label>
+              <label class="checkbox-label"><input type="checkbox" name="q1_area" value="Commercial area"> வணிக பகுதி / Commercial area</label>
+              <label class="checkbox-label"><input type="checkbox" name="q1_area" value="Other" class="other-toggle-cb" data-specify="q1-other-input"> மற்றவை / Other</label>
+              <label class="checkbox-label"><input type="checkbox" name="q1_area" value="Nil / None"> ஏதுமில்லை / Nil or None</label>
+            </div>
+            <input type="text" id="q1-other-input" class="form-input specify-other-input" style="display:none; margin-top:8px;" placeholder="காரணம் குறிப்பிடவும் / Please specify details for Other...">
+          </div>
+
+          <!-- Q2: POPULATION MATH WITH DYNAMIC AUTO-SUM -->
+          <div class="form-group col-span-2 pop-math-card">
+            <label class="section-sub-title"><i class="fa-solid fa-users"></i> 2. உங்கள் வீட்டில் எத்தனை பேர் வசிக்கிறார்கள்? / How many people live in your household?</label>
+            <div class="form-grid grid-4 pop-grid">
+              <div class="form-group">
+                <label>ஆண்கள் (பெரியவர்கள்) / Adult Males</label>
+                <input type="number" id="pop-male-adult" class="form-input pop-input" min="0" value="1" required>
+              </div>
+              <div class="form-group">
+                <label>பெண்கள் (பெரியவர்கள்) / Adult Females</label>
+                <input type="number" id="pop-female-adult" class="form-input pop-input" min="0" value="1" required>
+              </div>
+              <div class="form-group">
+                <label>சிறுவர்கள் (ஆண்) / Children (Male)</label>
+                <input type="number" id="pop-male-child" class="form-input pop-input" min="0" value="0" required>
+              </div>
+              <div class="form-group">
+                <label>சிறுமிகள் (பெண்) / Children (Female)</label>
+                <input type="number" id="pop-female-child" class="form-input pop-input" min="0" value="0" required>
+              </div>
+            </div>
+            
+            <div class="pop-total-banner">
+              <span>மொத்த குடும்ப உறுப்பினர்கள் / Total Population:</span>
+              <strong id="pop-total-display">2 Members</strong>
+            </div>
+          </div>
+
+          <div class="form-group col-span-2">
+            <label>3. உங்கள் வீட்டில் அதிகமாக உருவாகும் கழிவு எது? / What is the main type of waste generated in your household? (Select All That Apply) <span class="req">*</span></label>
+            <div class="checkbox-group">
+              <label class="checkbox-label"><input type="checkbox" name="main_waste" value="Food waste"> உணவுக் கழிவுகள் / Food waste</label>
+              <label class="checkbox-label"><input type="checkbox" name="main_waste" value="Plastic"> பிளாஸ்டிக் / Plastic</label>
+              <label class="checkbox-label"><input type="checkbox" name="main_waste" value="Paper"> காகிதம் / Paper</label>
+              <label class="checkbox-label"><input type="checkbox" name="main_waste" value="Glass"> கண்ணாடி / Glass</label>
+              <label class="checkbox-label"><input type="checkbox" name="main_waste" value="E-waste"> மின்சாரக் கழிவுகள் / E-waste</label>
+              <label class="checkbox-label"><input type="checkbox" name="main_waste" value="Sanitary waste"> சுகாதாரக் கழிவுகள் / Sanitary waste</label>
+              <label class="checkbox-label"><input type="checkbox" name="main_waste" value="Other" class="other-toggle-cb" data-specify="q3-other-input"> மற்றவை / Other</label>
+              <label class="checkbox-label"><input type="checkbox" name="main_waste" value="Nil / None"> ஏதுமில்லை / Nil or None</label>
+            </div>
+            <input type="text" id="q3-other-input" class="form-input specify-other-input" style="display:none; margin-top:8px;" placeholder="காரணம் குறிப்பிடவும் / Please specify details for Other...">
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 2: CURRENT WASTE-DISPOSAL PRACTICES -->
+      <div class="form-card">
+        <div class="card-header">
+          <span class="step-num bg-emerald-light text-emerald">02</span>
+          <div>
+            <h3>2. தற்போதைய கழிவு அகற்றும் முறைகள் / Current Waste-Disposal Practices</h3>
+            <p>கழிவு சேகரிப்பு முறை, அதிர்வெண் மற்றும் தரம் பிரித்தல் / Disposal method, collection frequency & segregation</p>
+          </div>
+        </div>
+
+        <div class="form-grid grid-2">
+          <div class="form-group col-span-2">
+            <label>4. உங்கள் வீட்டுக் கழிவுகளை எவ்வாறு அகற்றுகிறீர்கள்? / How do you currently dispose of your household waste? (Select All That Apply) <span class="req">*</span></label>
+            <div class="checkbox-group">
+              <label class="checkbox-label"><input type="checkbox" name="q4_dispose_method" value="Door-to-door municipal collector (Free)"> வீடு தேடி வரும் இலவச நகராட்சி சேகரிப்பாளர் / Door-to-door municipal collector (Free)</label>
+              <label class="checkbox-label"><input type="checkbox" name="q4_dispose_method" value="Private paid collector"> தனியார் கட்டண சேகரிப்பாளர் / Private paid collector</label>
+              <label class="checkbox-label"><input type="checkbox" name="q4_dispose_method" value="Community public bin"> பொதுக் குப்பைத் தொட்டி / Community public bin</label>
+              <label class="checkbox-label"><input type="checkbox" name="q4_dispose_method" value="Dump on vacant plot / street"> காலி இடம் / தெருவில் கொட்டுதல் / Dump on vacant plot or street</label>
+              <label class="checkbox-label"><input type="checkbox" name="q4_dispose_method" value="Burn waste locally"> எரித்தல் / Burn waste locally</label>
+              <label class="checkbox-label"><input type="checkbox" name="q4_dispose_method" value="Other" class="other-toggle-cb" data-specify="q4-other-input"> மற்றவை / Other</label>
+              <label class="checkbox-label"><input type="checkbox" name="q4_dispose_method" value="Nil / None"> ஏதுமில்லை / Nil or None</label>
+            </div>
+            <input type="text" id="q4-other-input" class="form-input specify-other-input" style="display:none; margin-top:8px;" placeholder="காரணம் குறிப்பிடவும் / Please specify details for Other...">
+          </div>
+
+          <div class="form-group col-span-2">
+            <label>5. உங்கள் பகுதியில் எவ்வளவு அடிக்கடி கழிவுகள் சேகரிக்கப்படுகின்றன? / How often is waste collected in your area? (Select All That Apply) <span class="req">*</span></label>
+            <div class="checkbox-group">
+              <label class="checkbox-label"><input type="checkbox" name="q5_frequency" value="Daily"> தினமும் / Daily</label>
+              <label class="checkbox-label"><input type="checkbox" name="q5_frequency" value="Alternate Days"> ஒரு நாள் விட்டு ஒரு நாள் / Alternate Days</label>
+              <label class="checkbox-label"><input type="checkbox" name="q5_frequency" value="Twice a week"> வாரத்திற்கு இருமுறை / Twice a week</label>
+              <label class="checkbox-label"><input type="checkbox" name="q5_frequency" value="Once a week"> வாரத்திற்கு ஒருமுறை / Once a week</label>
+              <label class="checkbox-label"><input type="checkbox" name="q5_frequency" value="Irregular / Rarely"> முறையற்றது / அரிதாக / Irregular or Rarely</label>
+              <label class="checkbox-label"><input type="checkbox" name="q5_frequency" value="Never collected"> சேகரிக்கப்படுவதில்லை / Never collected</label>
+              <label class="checkbox-label"><input type="checkbox" name="q5_frequency" value="Other" class="other-toggle-cb" data-specify="q5-other-input"> மற்றவை / Other</label>
+              <label class="checkbox-label"><input type="checkbox" name="q5_frequency" value="Nil / None"> ஏதுமில்லை / Nil or None</label>
+            </div>
+            <input type="text" id="q5-other-input" class="form-input specify-other-input" style="display:none; margin-top:8px;" placeholder="காரணம் குறிப்பிடவும் / Please specify details for Other...">
+          </div>
+
+          <div class="form-group col-span-2">
+            <label>6. வீட்டுக் கழிவுகளை மட்கும் மற்றும் மட்காதவையாகப் பிரித்து தருகிறீர்களா? / Do you separate household waste into wet and dry categories? (Select All That Apply) <span class="req">*</span></label>
+            <div class="checkbox-group">
+              <label class="checkbox-label"><input type="checkbox" name="q7_separate" value="Always"> எப்போதும் பிரிப்போம் / Always</label>
+              <label class="checkbox-label"><input type="checkbox" name="q7_separate" value="Sometimes"> சில நேரங்களில் பிரிப்போம் / Sometimes</label>
+              <label class="checkbox-label"><input type="checkbox" name="q7_separate" value="Never"> பிரிப்பதில்லை / Never</label>
+              <label class="checkbox-label"><input type="checkbox" name="q7_separate" value="Other" class="other-toggle-cb" data-specify="q7-other-input"> மற்றவை / Other</label>
+              <label class="checkbox-label"><input type="checkbox" name="q7_separate" value="Nil / None"> ஏதுமில்லை / Nil or None</label>
+            </div>
+            <input type="text" id="q7-other-input" class="form-input specify-other-input" style="display:none; margin-top:8px;" placeholder="காரணம் குறிப்பிடவும் / Please specify details for Other...">
+          </div>
+
+          <!-- Q7: REASONS FOR NON-SEGREGATION (FULL SURVEY ONLY) -->
+          <div class="form-group col-span-2 full-survey-only">
+            <label>7. கழிவுகளைப் பிரிக்காவிட்டால், அதற்கான முக்கிய காரணம் என்ன? / If you don't separate waste, what is the main reason? (Select All That Apply)</label>
+            <div class="checkbox-group">
+              <label class="checkbox-label"><input type="checkbox" name="q8_no_separate_reason" value="N/A - We separate waste"> பொருந்தாது - நாங்கள் பிரிக்கிறோம் / N/A - We separate waste</label>
+              <label class="checkbox-label"><input type="checkbox" name="q8_no_separate_reason" value="Lack of awareness"> விழிப்புணர்வு இன்மை / Lack of awareness</label>
+              <label class="checkbox-label"><input type="checkbox" name="q8_no_separate_reason" value="No separate collection"> தனியாக சேகரிக்கப்படுவதில்லை / No separate collection</label>
+              <label class="checkbox-label"><input type="checkbox" name="q8_no_separate_reason" value="Lack of space"> இடப்பற்றாக்குறை / Lack of space</label>
+              <label class="checkbox-label"><input type="checkbox" name="q8_no_separate_reason" value="Lack of time"> நேரமின்மை / Lack of time</label>
+              <label class="checkbox-label"><input type="checkbox" name="q8_no_separate_reason" value="Inconvenient"> சிரமமானது / Inconvenient</label>
+              <label class="checkbox-label"><input type="checkbox" name="q8_no_separate_reason" value="Other" class="other-toggle-cb" data-specify="q8-other-input"> மற்றவை / Other</label>
+              <label class="checkbox-label"><input type="checkbox" name="q8_no_separate_reason" value="Nil / None"> ஏதுமில்லை / Nil or None</label>
+            </div>
+            <input type="text" id="q8-other-input" class="form-input specify-other-input" style="display:none; margin-top:8px;" placeholder="காரணம் குறிப்பிடவும் / Please specify details for Other...">
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 3: PROBLEMS & IMPACTS -->
+      <div class="form-card">
+        <div class="card-header">
+          <span class="step-num bg-emerald-light text-emerald">03</span>
+          <div>
+            <h3>3. நீங்கள் சந்திக்கும் பிரச்சினைகள் / Problems & Impacts Experienced</h3>
+            <p>பொது இடத்தில் கொட்டுதல் மற்றும் சுற்றுச்சூழல் பாதிப்புகள் / Dumping hotspots and neighborhood nuisances</p>
+          </div>
+        </div>
+
+        <div class="form-grid grid-2">
+          <div class="form-group col-span-2">
+            <label>8. மக்கள் கழிவுகளை பொது இடங்களில் கொட்டுகிறார்களா? ஆம் எனில், எங்கே? / Do people dump waste in public places? If yes, where? <span class="req">*</span></label>
+            <input type="text" id="q10-illegal-dumping" class="form-input" required placeholder="எ.கா: இ.சி.ஆர் சாலை சந்திப்பு காலி மனை, தெரு முக்கு / e.g., Vacant plots near street junction">
+          </div>
+
+          <!-- Q9: NUISANCES & IMPACTS (FULL SURVEY ONLY) -->
+          <div class="form-group col-span-2 full-survey-only">
+            <label>9. கழிவுகளை பொது இடங்களில் கொட்டுவதால் ஏற்படும் பாதிப்புகள் என்ன? / What are the impacts of dumping waste in public places? (Select All That Apply)</label>
+            <div class="checkbox-group">
+              <label class="checkbox-label"><input type="checkbox" name="problems" value="Bad smell"> துர்நாற்றம் / Bad smell</label>
+              <label class="checkbox-label"><input type="checkbox" name="problems" value="Stray animals"> தெரு விலங்குகள் / Stray animals</label>
+              <label class="checkbox-label"><input type="checkbox" name="problems" value="Mosquitoes/insects"> கொசுக்கள் / பூச்சிகள் / Mosquitoes & insects</label>
+              <label class="checkbox-label"><input type="checkbox" name="problems" value="Blocked drains"> சாக்கடை அடைப்பு / Blocked drains</label>
+              <label class="checkbox-label"><input type="checkbox" name="problems" value="Burning of waste"> கழிவுகளை எரித்தல் / Burning of waste</label>
+              <label class="checkbox-label"><input type="checkbox" name="problems" value="Overflowing garbage"> நிரம்பி வழியும் குப்பை / Overflowing garbage</label>
+              <label class="checkbox-label"><input type="checkbox" name="problems" value="Plastic litter"> பிளாஸ்டிக் குப்பைகள் / Plastic litter</label>
+              <label class="checkbox-label"><input type="checkbox" name="problems" value="Other" class="other-toggle-cb" data-specify="q11-other-input"> மற்றவை / Other</label>
+              <label class="checkbox-label"><input type="checkbox" name="problems" value="Nil / None"> ஏதுமில்லை / Nil or None</label>
+            </div>
+            <input type="text" id="q11-other-input" class="form-input specify-other-input" style="display:none; margin-top:8px;" placeholder="காரணம் குறிப்பிடவும் / Please specify details for Other...">
+          </div>
+
+          <div class="form-group col-span-2">
+            <label>10. எந்த வகையான கழிவை அகற்றுவது உங்களுக்கு மிகவும் கடினமாக உள்ளது? / Which type of waste is most difficult for you to dispose of properly? (Select All That Apply) <span class="req">*</span></label>
+            <div class="checkbox-group">
+              <label class="checkbox-label"><input type="checkbox" name="q13_difficult_waste" value="Plastic bottles & packaging"> பிளாஸ்டிக் பாட்டில்கள் / Packaging plastics</label>
+              <label class="checkbox-label"><input type="checkbox" name="q13_difficult_waste" value="E-waste (batteries, cables)"> மின்சாரக் கழிவுகள் (பேட்டரி, கேபிள்) / E-waste</label>
+              <label class="checkbox-label"><input type="checkbox" name="q13_difficult_waste" value="Sanitary waste & diapers"> சுகாதாரக் கழிவுகள் & டயப்பர்கள் / Sanitary waste & diapers</label>
+              <label class="checkbox-label"><input type="checkbox" name="q13_difficult_waste" value="Wet food waste / kitchen scraps"> ஈரமான உணவுக் கழிவுகள் / Wet kitchen scraps</label>
+              <label class="checkbox-label"><input type="checkbox" name="q13_difficult_waste" value="Glass & broken ceramics"> கண்ணாடி கழிவுகள் / Glass & broken ceramics</label>
+              <label class="checkbox-label"><input type="checkbox" name="q13_difficult_waste" value="Hazardous / Medical waste"> மருத்துவக் கழிவுகள் / Hazardous or Medical waste</label>
+              <label class="checkbox-label"><input type="checkbox" name="q13_difficult_waste" value="Other" class="other-toggle-cb" data-specify="q13-other-input"> மற்றவை / Other</label>
+              <label class="checkbox-label"><input type="checkbox" name="q13_difficult_waste" value="Nil / None"> ஏதுமில்லை / Nil or None</label>
+            </div>
+            <input type="text" id="q13-other-input" class="form-input specify-other-input" style="display:none; margin-top:8px;" placeholder="காரணம் குறிப்பிடவும் / Please specify details for Other...">
+          </div>
+
+          <!-- Q11: DELAYED COLLECTION CONSEQUENCES (FULL SURVEY ONLY) -->
+          <div class="form-group col-span-2 full-survey-only">
+            <label>11. கழிவுகள் நேரத்தில் சேகரிக்கப்படாவிட்டால் என்ன நடக்கும்? / What happens when waste isn't collected on time? (Select All That Apply)</label>
+            <div class="checkbox-group">
+              <label class="checkbox-label"><input type="checkbox" name="q14_delayed_effect" value="Pile up outside gate / street"> வீட்டின் முன்/தெருவில் குப்பைகள் சேரும் / Pile up outside gate</label>
+              <label class="checkbox-label"><input type="checkbox" name="q14_delayed_effect" value="Attracts dogs, cows & rats"> நாய், மாடு மற்றும் எலிகள் கூடும் / Attracts dogs & rats</label>
+              <label class="checkbox-label"><input type="checkbox" name="q14_delayed_effect" value="Forced to dump in public plot"> பொது இடத்தில் கொட்ட நிர்ப்பந்திக்கப்படும் / Dump in public plot</label>
+              <label class="checkbox-label"><input type="checkbox" name="q14_delayed_effect" value="Forced to burn waste"> எரிக்க நிர்ப்பந்திக்கப்படும் / Forced to burn waste</label>
+              <label class="checkbox-label"><input type="checkbox" name="q14_delayed_effect" value="Stored inside house until next pickup"> அடுத்த சேகரிப்பு வரை வீட்டிற்குள் வைக்கப்படும் / Stored inside house</label>
+              <label class="checkbox-label"><input type="checkbox" name="q14_delayed_effect" value="Other" class="other-toggle-cb" data-specify="q14-other-input"> மற்றவை / Other</label>
+              <label class="checkbox-label"><input type="checkbox" name="q14_delayed_effect" value="Nil / None"> ஏதுமில்லை / Nil or None</label>
+            </div>
+            <input type="text" id="q14-other-input" class="form-input specify-other-input" style="display:none; margin-top:8px;" placeholder="காரணம் குறிப்பிடவும் / Please specify details for Other...">
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 4: BARRIERS & AWARENESS (FULL SURVEY ONLY) -->
+      <div class="form-card full-survey-only" id="section-card-4">
+        <div class="card-header">
+          <span class="step-num bg-emerald-light text-emerald">04</span>
+          <div>
+            <h3>4. விழிப்புணர்வும் வசதிகளும் / Awareness & Convenience</h3>
+            <p>கழிவு மேலாண்மை விழிப்புணர்வு மற்றும் தற்போதுள்ள முறையின் வசதி / Knowledge gaps and service convenience</p>
+          </div>
+        </div>
+
+        <div class="form-grid grid-2">
+          <div class="form-group col-span-2">
+            <label>12. கழிவுகளை பிரிப்பது மற்றும் அகற்றுவது பற்றி மக்களுக்கு போதுமான விழிப்புணர்வு உள்ளதா? / Are people sufficiently aware of waste segregation and disposal? (Select All That Apply) <span class="req">*</span></label>
+            <div class="checkbox-group">
+              <label class="checkbox-label"><input type="checkbox" name="q16_knowledge" value="Yes - Fully Informed"> ஆம் - முழுமையான விழிப்புணர்வு உண்டு / Yes - Fully Informed</label>
+              <label class="checkbox-label"><input type="checkbox" name="q16_knowledge" value="Partial Knowledge"> பகுதியளவு விழிப்புணர்வு / Partial Knowledge</label>
+              <label class="checkbox-label"><input type="checkbox" name="q16_knowledge" value="No - Very Poor Awareness"> இல்லை - விழிப்புணர்வு மிகக் குறைவு / No - Poor Awareness</label>
+              <label class="checkbox-label"><input type="checkbox" name="q16_knowledge" value="Other" class="other-toggle-cb" data-specify="q16-other-input"> மற்றவை / Other</label>
+              <label class="checkbox-label"><input type="checkbox" name="q16_knowledge" value="Nil / None"> ஏதுமில்லை / Nil or None</label>
+            </div>
+            <input type="text" id="q16-other-input" class="form-input specify-other-input" style="display:none; margin-top:8px;" placeholder="காரணம் குறிப்பிடவும் / Please specify details for Other...">
+          </div>
+
+          <!-- Q13: SINGLE-USE PLASTIC BAN & ECO-BAG USAGE -->
+          <div class="form-group col-span-2">
+            <label>13. புதுச்சேரி ஒருமுறை பயன்படுத்தும் பிளாஸ்டிக் தடை பற்றிய விழிப்புணர்வு உள்ளதா? துணிப்பை பயன்படுத்துகிறீர்களா? / Are you aware of the Single-Use Plastic ban and do you use cloth bags/eco-alternatives? (Select All That Apply) <span class="req">*</span></label>
+            <div class="checkbox-group">
+              <label class="checkbox-label"><input type="checkbox" name="q13_plastic_ban" value="Always carry cloth/jute bags"> ஆம் - எப்போதும் துணிப்பை பயன்படுத்துகிறேன் / Yes - Always carry cloth/jute bags</label>
+              <label class="checkbox-label"><input type="checkbox" name="q13_plastic_ban" value="Aware but still use plastic sometimes"> விழிப்புணர்வு உண்டு, சில சமயம் பிளாஸ்டிக் பயன்படுத்துகிறேன் / Aware but sometimes still use plastic</label>
+              <label class="checkbox-label"><input type="checkbox" name="q13_plastic_ban" value="Not aware of plastic ban"> தடை பற்றி தெரியாது / Not aware of plastic ban</label>
+              <label class="checkbox-label"><input type="checkbox" name="q13_plastic_ban" value="Other" class="other-toggle-cb" data-specify="q13-ban-other-input"> மற்றவை / Other</label>
+              <label class="checkbox-label"><input type="checkbox" name="q13_plastic_ban" value="Nil / None"> ஏதுமில்லை / Nil or None</label>
+            </div>
+            <input type="text" id="q13-ban-other-input" class="form-input specify-other-input" style="display:none; margin-top:8px;" placeholder="காரணம் குறிப்பிடவும் / Please specify details for Other...">
+          </div>
+
+          <!-- Q14: CONVENIENCE -->
+          <div class="form-group col-span-2">
+            <label>14. தற்போதுள்ள கழிவு சேகரிப்பு முறை உங்களுக்கு வசதியாக உள்ளதா? ஏன்? / Is the existing waste-collection system convenient for you? Why/why not? <span class="req">*</span></label>
+            <input type="text" id="q18-convenient" class="form-input" required placeholder="எ.கா: காலை நேரம் நிலையாக இல்லை / e.g., Unpredictable morning pickup time">
+          </div>
+
+          <!-- Q15: OVERALL MUNICIPAL SOLID WASTE SERVICE SATISFACTION (1-5 SCALE) -->
+          <div class="form-group col-span-2">
+            <label>15. புதுச்சேரி நகராட்சியின் ஒட்டுமொத்த கழிவு மேலாண்மை சேவையில் உங்கள் திருப்தி நிலை என்ன? / Overall Satisfaction Rating with Pondicherry Municipal Solid Waste Service? (Select One) <span class="req">*</span></label>
+            <div class="checkbox-group">
+              <label class="checkbox-label"><input type="checkbox" name="q15_satisfaction" value="⭐⭐⭐⭐⭐ Very Satisfied"> ⭐⭐⭐⭐⭐ மிக திருப்தி / Very Satisfied (5/5)</label>
+              <label class="checkbox-label"><input type="checkbox" name="q15_satisfaction" value="⭐⭐⭐⭐ Satisfied"> ⭐⭐⭐⭐ திருப்தி / Satisfied (4/5)</label>
+              <label class="checkbox-label"><input type="checkbox" name="q15_satisfaction" value="⭐⭐⭐ Neutral"> ⭐⭐⭐ நடுத்தரமானது / Neutral (3/5)</label>
+              <label class="checkbox-label"><input type="checkbox" name="q15_satisfaction" value="⭐⭐ Dissatisfied"> ⭐⭐ திருப்தியின்மை / Dissatisfied (2/5)</label>
+              <label class="checkbox-label"><input type="checkbox" name="q15_satisfaction" value="⭐ Very Dissatisfied"> ⭐ மிக திருப்தியின்மை / Very Dissatisfied (1/5)</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 5: SOLUTIONS, DUSTBIN & PARTICIPATION -->
+      <div class="form-card">
+        <div class="card-header">
+          <span class="step-num bg-emerald-light text-emerald">05</span>
+          <div>
+            <h3>5. தீர்வுகளும் விருப்பங்களும் / Solutions & Citizen Preferences</h3>
+            <p>சமூக பங்கேற்பு, உதவி தேவைகள் மற்றும் குப்பைத்தொட்டி விருப்பம் / Community participation, required assistance & dustbins</p>
+          </div>
+        </div>
+
+        <div class="form-grid grid-2">
+          <!-- Q16: COMMUNITY CLEANUP PARTICIPATION (FULL SURVEY ONLY) -->
+          <div class="form-group col-span-2 full-survey-only">
+            <label>16. சமூக தூய்மைப் பணிகளில் எவ்வளவு அடிக்கடி பங்கேற்பீர்கள்? / How often would you participate in community cleaning activities? (Select All That Apply) <span class="req">*</span></label>
+            <div class="checkbox-group">
+              <label class="checkbox-label"><input type="checkbox" name="q22_community_part" value="Weekly"> வாராந்திரம் / Weekly</label>
+              <label class="checkbox-label"><input type="checkbox" name="q22_community_part" value="Monthly"> மாதாந்திரம் / Monthly</label>
+              <label class="checkbox-label"><input type="checkbox" name="q22_community_part" value="Yearly"> ஆண்டிற்கு ஒருமுறை / Yearly</label>
+              <label class="checkbox-label"><input type="checkbox" name="q22_community_part" value="Other" class="other-toggle-cb" data-specify="q22-other-input"> மற்றவை / Other</label>
+              <label class="checkbox-label"><input type="checkbox" name="q22_community_part" value="Nil / None"> ஏதுமில்லை / Nil or None</label>
+            </div>
+            <input type="text" id="q22-other-input" class="form-input specify-other-input" style="display:none; margin-top:8px;" placeholder="காரணம் குறிப்பிடவும் / Please specify details for Other...">
+          </div>
+
+          <!-- Q17: ASSISTANCE NEEDED (FULL SURVEY ONLY) -->
+          <div class="form-group col-span-2 full-survey-only">
+            <label>17. கழிவுகளை திறம்பட மேலாண்மை செய்ய உங்களுக்கு என்ன வகையான உதவி தேவைப்படும்? / What kind of assistance will help you manage waste better? (Select All That Apply) <span class="req">*</span></label>
+            <div class="checkbox-group">
+              <label class="checkbox-label"><input type="checkbox" name="q24_support_needed" value="Regular Door-to-Door Collection"> சீரான வீடு வீடான கழிவு சேகரிப்பு / Regular Door-to-Door Collection</label>
+              <label class="checkbox-label"><input type="checkbox" name="q24_support_needed" value="Separate Wet & Dry Dustbins"> மட்கும் மற்றும் மட்கா கழிவுகளுக்கு தனித்தனி தொட்டிகள் / Separate Wet & Dry Dustbins</label>
+              <label class="checkbox-label"><input type="checkbox" name="q24_support_needed" value="Waste Segregation Training"> கழிவுகளை தரம் பிரிக்கும் பயிற்சி / Waste Segregation Training</label>
+              <label class="checkbox-label"><input type="checkbox" name="q24_support_needed" value="Home Composting Guidance"> வீட்டு உரமாக்கல் வழிகாட்டுதல் / Home Composting Guidance</label>
+              <label class="checkbox-label"><input type="checkbox" name="q24_support_needed" value="Community Recycling Bins"> சமுதாய மறுசுழற்சி தொட்டிகள் / Community Recycling Bins</label>
+              <label class="checkbox-label"><input type="checkbox" name="q24_support_needed" value="Other" class="other-toggle-cb" data-specify="q24-other-input"> மற்றவை / Other</label>
+              <label class="checkbox-label"><input type="checkbox" name="q24_support_needed" value="Nil / None"> ஏதுமில்லை / Nil or None</label>
+            </div>
+            <input type="text" id="q24-other-input" class="form-input specify-other-input" style="display:none; margin-top:8px;" placeholder="காரணம் குறிப்பிடவும் / Please specify details for Other...">
+          </div>
+
+          <!-- Q18: DUSTBIN FREE / PAID SELECTION WITH CONDITIONAL MONTHLY INCOME DROPDOWN -->
+          <div class="form-group col-span-2 highlight-group">
+            <label>18. உங்களுக்கு இலவச அல்லது கட்டணக் குப்பைத் தொட்டி தேவையா? / Do you need a Free or Paid Dustbin? (Select All That Apply) <span class="req">*</span></label>
+            <div class="checkbox-group">
+              <label class="checkbox-label"><input type="checkbox" id="cb-dustbin-free" name="q25_dustbin_type" value="Free Dustbin"> இலவச குப்பைத் தொட்டி வேண்டும் / Need Free Dustbin</label>
+              <label class="checkbox-label"><input type="checkbox" id="cb-dustbin-paid" name="q25_dustbin_type" value="Paid Dustbin"> கட்டணக் குப்பைத் தொட்டி பெறத் தயார் / Ready to Pay for Dustbin</label>
+              <label class="checkbox-label"><input type="checkbox" name="q25_dustbin_type" value="Not Needed / Already Have"> தேவையில்லை (ஏற்கனவே உள்ளது) / Not Needed (Already Have)</label>
+              <label class="checkbox-label"><input type="checkbox" name="q25_dustbin_type" value="Other" class="other-toggle-cb" data-specify="q25-other-input"> மற்றவை / Other</label>
+              <label class="checkbox-label"><input type="checkbox" name="q25_dustbin_type" value="Nil / None"> ஏதுமில்லை / Nil or None</label>
+            </div>
+            <input type="text" id="q25-other-input" class="form-input specify-other-input" style="display:none; margin-top:8px;" placeholder="காரணம் குறிப்பிடவும் / Please specify details for Other...">
+          </div>
+
+          <!-- Q19: WILLINGNESS TO PAY NOMINAL MONTHLY WASTE FEE (FULL SURVEY ONLY) -->
+          <div class="form-group col-span-2 full-survey-only">
+            <label>19. தினசரி மற்றும் சீரான கழிவு சேகரிப்பிற்காக மாதந்தோறும் சிறு பயனர் கட்டணம் (₹30 - ₹50) செலுத்த தயாராக உள்ளீர்களா? / Are you willing to pay a nominal monthly user fee (₹30 - ₹50) for reliable daily waste collection? (Select All That Apply) <span class="req">*</span></label>
+            <div class="checkbox-group">
+              <label class="checkbox-label"><input type="checkbox" name="q19_willingness_fee" value="Yes - Willing to pay nominal fee"> ஆம் - செலுத்த தயாராக உள்ளோம் / Yes - Willing to pay (₹30-₹50)</label>
+              <label class="checkbox-label"><input type="checkbox" name="q19_willingness_fee" value="Only if service is 100% daily & reliable"> தினமும் சரியாக சேகரித்தால் மட்டுமே செலுத்துவோம் / Only if collection is 100% daily & reliable</label>
+              <label class="checkbox-label"><input type="checkbox" name="q19_willingness_fee" value="No - Must be completely free"> இல்லை - முற்றிலும் இலவசமாக இருக்க வேண்டும் / No - Must be completely free</label>
+              <label class="checkbox-label"><input type="checkbox" name="q19_willingness_fee" value="Other" class="other-toggle-cb" data-specify="q19-fee-other-input"> மற்றவை / Other</label>
+              <label class="checkbox-label"><input type="checkbox" name="q19_willingness_fee" value="Nil / None"> ஏதுமில்லை / Nil or None</label>
+            </div>
+            <input type="text" id="q19-fee-other-input" class="form-input specify-other-input" style="display:none; margin-top:8px;" placeholder="காரணம் குறிப்பிடவும் / Please specify details for Other...">
+          </div>
+
+          <!-- Q20: KEY REFORM RECOMMENDATION -->
+          <div class="form-group col-span-2">
+            <label>20. உங்கள் பகுதியில் கழிவு மேலாண்மையில் ஒரு முக்கிய மாற்றத்தை செய்ய முடிந்தால், அது என்னவாக இருக்கும்? / If you could change ONE key thing about waste management, what would it be? <span class="req">*</span></label>
+            <textarea id="q26-final-suggestion" class="form-textarea" rows="3" required placeholder="நகராட்சி அதிகாரிகளுக்கு உங்கள் முதன்மையான பரிந்துரையை எழுதவும்... / Share your recommendation..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUBMIT BAR -->
+      <div class="submit-bar" style="justify-content: flex-end;">
+        <button type="submit" id="btn-submit-form" class="btn btn-lg btn-success">
+          <i class="fa-solid fa-paper-plane"></i> Submit Completed Survey
+        </button>
+      </div>
+
+    </form>
+
+    <!-- POST-SUBMISSION SUCCESS & DOWNLOAD MODAL -->
+    <div id="modal-survey-success" class="modal-overlay">
+      <div class="modal-box" style="text-align: center;">
+        <div style="width:60px; height:60px; background:#ecfdf5; color:#059669; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:28px; margin:0 auto 16px;">
+          <i class="fa-solid fa-check"></i>
+        </div>
+        <h3 style="font-family:var(--font-heading); font-size:20px; font-weight:700; margin-bottom:8px;">Survey Submitted Successfully!</h3>
+        <p style="font-size:14px; color:#64748b; margin-bottom:20px;">Household response <strong id="success-survey-id" class="text-emerald">#WST-00000</strong> has been recorded in the database.</p>
+
+        <!-- CONDITIONAL WHATSAPP SHARING CARD FOR SHORT SURVEY RESPONDENTS -->
+        <div id="whatsapp-share-box" style="display:none; background:#ecfdf5; border:1px solid #6ee7b7; border-radius:10px; padding:14px; margin-bottom:16px; text-align:left;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+            <i class="fa-brands fa-whatsapp text-emerald" style="font-size:22px;"></i>
+            <strong style="color:#065f46; font-size:14px;">வாட்ஸ்அப் மூலம் மீதமுள்ள கேள்விகளை பகிரவும் / Share Remaining Questions via WhatsApp</strong>
+          </div>
+          <p style="font-size:12.5px; color:#047857; margin:0 0 10px 0;">பதிலளிப்பவர் நேரமின்மையால் 10 கேள்விகளுக்கு மட்டுமே பதிலளித்துள்ளார். முழுமை பெற மீதமுள்ள படிவத்தின் இணைப்பை அவர்களின் எண்ணிற்கு அனுப்பவும்:</p>
+          <a id="btn-whatsapp-share" href="#" target="_blank" class="btn btn-success" style="width:100%; display:inline-flex; align-items:center; justify-content:center; gap:8px; text-decoration:none; font-weight:700;">
+            <i class="fa-brands fa-whatsapp" style="font-size:18px;"></i> Send Form Link to WhatsApp (<span id="whatsapp-phone-display"></span>)
+          </a>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:16px;">
+          <button id="btn-next-household" class="btn btn-lg btn-success" style="width:100%;">
+            <i class="fa-solid fa-plus-circle"></i> Fill Next Household Form (<span id="success-int-name"></span>)
+          </button>
+          
+          <button id="btn-unsubmit-form" class="btn btn-lg" style="width:100%; background:#fff7ed; color:#c2410c; border:1px solid #ffedd5;">
+            <i class="fa-solid fa-rotate-left"></i> Unsubmit & Edit Responses
+          </button>
+          
+          <button id="btn-switch-interviewer" class="btn" style="width:100%; background:#f1f5f9; color:#475569;">
+            <i class="fa-solid fa-user-pen"></i> Switch Interviewer Name
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
