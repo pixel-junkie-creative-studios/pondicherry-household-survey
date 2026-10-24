@@ -61,8 +61,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         const seenIds = new Set();
         const dedupedList = [];
 
+        const simulatedNames = new Set([
+          'muthukrishnan','subramaniam','chidambaram','narayanasamy','kuppusamy',
+          'meenakshi sundaram','palanisamy','thirunavukkarasu','arunachalam','dhandapani',
+          'ganesan','kaliyaperumal','veerappan','shanmugam','radhakrishnan','kandasamy',
+          'manickam','ponnusamy','velmurugan','annamalai','govindasamy','sengottaiyan',
+          'vaithilingam','ramasamy','saminathan','nallathambi','chelladurai','thangavelu'
+        ]);
+
         newSurveys.forEach(s => {
-          const head = (s.familyHead || '').trim().toLowerCase();
+          let headRaw = (s.familyHead || '').trim();
+          let head = headRaw.toLowerCase();
+          
+          // Strip out simulated/test names
+          if (simulatedNames.has(head)) {
+            head = '';
+            headRaw = '';
+          }
+
           if (head) {
             if (!seenHeads.has(head)) {
               seenHeads.add(head);
@@ -72,7 +88,14 @@ document.addEventListener('DOMContentLoaded', async () => {
           } else {
             if (!seenIds.has(s.id)) {
               seenIds.add(s.id);
-              dedupedList.push(s);
+              // Clean object clone so table doesn't display simulated name
+              if (s.familyHead && simulatedNames.has(s.familyHead.trim().toLowerCase())) {
+                const sClone = { ...s };
+                delete sClone.familyHead;
+                dedupedList.push(sClone);
+              } else {
+                dedupedList.push(s);
+              }
             }
           }
         });
