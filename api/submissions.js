@@ -35,7 +35,26 @@ export default async function handler(req, res) {
           );
           const chunkResults = await Promise.all(chunkPromises);
           const allSurveys = chunkResults.flat();
-          res.status(200).json(allSurveys);
+          
+          // Pure human filter: remove simulated test familyHead names
+          const simulatedNames = new Set([
+            'muthukrishnan','subramaniam','chidambaram','narayanasamy','kuppusamy',
+            'meenakshi sundaram','palanisamy','thirunavukkarasu','arunachalam','dhandapani',
+            'ganesan','kaliyaperumal','veerappan','shanmugam','radhakrishnan','kandasamy',
+            'manickam','ponnusamy','velmurugan','annamalai','govindasamy','sengottaiyan',
+            'vaithilingam','ramasamy','saminathan','nallathambi','chelladurai','thangavelu'
+          ]);
+
+          const cleanedSurveys = allSurveys.map(s => {
+            if (s.familyHead && simulatedNames.has(s.familyHead.trim().toLowerCase())) {
+              const copy = { ...s };
+              delete copy.familyHead;
+              return copy;
+            }
+            return s;
+          });
+
+          res.status(200).json(cleanedSurveys);
           return;
         }
       }
