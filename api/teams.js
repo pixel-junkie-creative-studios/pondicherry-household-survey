@@ -23,23 +23,25 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const readUrl = getKvdbUrl();
-      const response = await fetch(readUrl);
+      try {
+        const readUrl = getKvdbUrl();
+        const response = await fetch(readUrl);
 
-      if (response.status === 404) {
-        // Seed default 20 interviewers with Aksa Saju & Romy Roy
-        await fetch(KVDB_TEAMS_URL, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(defaultTeams)
-        });
-        res.status(200).json(defaultTeams);
-        return;
+        if (response.status === 404) {
+          res.status(200).json(defaultTeams);
+          return;
+        }
+
+        if (response.ok) {
+          const interviewers = await response.json();
+          res.status(200).json(interviewers);
+          return;
+        }
+      } catch (err) {
+        console.warn("Teams KVdb fetch error:", err.message);
       }
-
-      const interviewers = await response.json();
-      res.status(200).json(interviewers);
-
+      res.status(200).json(defaultTeams);
+      return;
     } else if (req.method === 'POST') {
       const newInterviewer = req.body;
       if (!newInterviewer || !newInterviewer.name || !newInterviewer.team) {
